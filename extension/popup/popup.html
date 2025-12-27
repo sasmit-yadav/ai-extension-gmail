@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Message Organizer</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1 class="title">Smart Message Organizer</h1>
+        <p class="subtitle">Organize your Gmail messages</p>
+    </div>
+
+    <!-- Permission Screen (Hidden initially, shown in Phase 2) -->
+    <div id="permission-screen" class="permission-screen hidden">
+        <div class="permission-content">
+            <div class="lock-icon">🔒</div>
+            <h2>Permission Required</h2>
+            <p class="permission-description">
+                This extension needs your permission to read visible email messages on Gmail.
+            </p>
+            <ul class="permission-list">
+                <li>✓ Reads visible email subject lines</li>
+                <li>✓ Does not store or send data without consent</li>
+                <li>✓ Only processes on your action</li>
+                <li>✓ No background data collection</li>
+            </ul>
+            <div class="permission-buttons">
+                <button id="allow-button" class="btn btn-primary">Allow</button>
+                <button id="cancel-button" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content (Shown after permission granted) -->
+    <div id="main-content" class="main-content hidden">
+        <!-- Analyze Section -->
+        <div class="analyze-section">
+            <button id="analyze-button" class="btn btn-primary btn-large">
+                <span class="btn-icon">📧</span>
+                Analyze Messages
+            </button>
+            <p class="analyze-hint">Click to organize visible Gmail messages</p>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading-state" class="loading-state hidden">
+            <div class="spinner"></div>
+            <p id="loading-main-text">Analyzing messages...</p>
+            
+            <!-- Interactive Loading Interface -->
+            <div id="loading-progress" class="loading-progress hidden">
+                <div class="progress-steps">
+                    <div class="progress-step" id="step-extract">
+                        <div class="step-icon">📥</div>
+                        <div class="step-content">
+                            <div class="step-title">Reading Your Emails</div>
+                            <div class="step-status">Getting your messages...</div>
+                        </div>
+                        <div class="step-check">✓</div>
+                    </div>
+                    
+                    <div class="progress-step" id="step-send">
+                        <div class="step-icon">📤</div>
+                        <div class="step-content">
+                            <div class="step-title">Preparing Analysis</div>
+                            <div class="step-status">Getting ready...</div>
+                        </div>
+                        <div class="step-check">✓</div>
+                    </div>
+                    
+                    <div class="progress-step" id="step-ml">
+                        <div class="step-icon">🤖</div>
+                        <div class="step-content">
+                            <div class="step-title">Smart Analysis</div>
+                            <div class="step-status">Understanding your emails...</div>
+                        </div>
+                        <div class="step-check">✓</div>
+                    </div>
+                    
+                    <div class="progress-step" id="step-insights">
+                        <div class="step-icon">💡</div>
+                        <div class="step-content">
+                            <div class="step-title">Creating Recommendations</div>
+                            <div class="step-status">Finding insights for you...</div>
+                        </div>
+                        <div class="step-check">✓</div>
+                    </div>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <div class="progress-text" id="progress-text">0%</div>
+                </div>
+                
+                <!-- Fun Facts / Tips -->
+                <div class="loading-tip" id="loading-tip">
+                    <span class="tip-icon">💡</span>
+                    <span class="tip-text">Did you know? ML models can process 50+ messages in seconds!</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section (Hidden initially, shown in Phase 6) -->
+        <div id="results-container" class="results-container hidden">
+            <div class="results-header">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h2>Organized Messages</h2>
+                    <button id="new-analysis-button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
+                        🔄 New Analysis
+                    </button>
+                </div>
+                <p class="total-count">Total: <span id="total-count">0</span> messages</p>
+            </div>
+            
+            <!-- Insights & Recommendations Section -->
+            <div id="insights-section" class="insights-section hidden">
+                <div class="insights-header">
+                    <h3>💡 Insights & Recommendations</h3>
+                </div>
+                <div id="insights-list" class="insights-list"></div>
+            </div>
+            
+            <!-- Search and Filter Bar -->
+            <div class="search-filter-bar">
+                <div class="search-container">
+                    <input 
+                        type="text" 
+                        id="search-input" 
+                        placeholder="🔍 Search messages by subject, sender, or preview..." 
+                        class="search-input"
+                    >
+                    <button id="clear-search-btn" class="btn-icon clear-btn" style="display: none;" title="Clear search">✕</button>
+                </div>
+                
+                <div class="filter-container">
+                    <select id="category-filter" class="filter-select">
+                        <option value="all">All Categories</option>
+                        <option value="needs_reply">🔴 Needs Reply</option>
+                        <option value="important">🟡 Important</option>
+                        <option value="ignore">⚪ Ignore</option>
+                    </select>
+                    
+                    <select id="sort-select" class="filter-select">
+                        <option value="priority-desc">Priority (High First)</option>
+                        <option value="date-desc">Newest First</option>
+                        <option value="date-asc">Oldest First</option>
+                        <option value="sender-asc">Sender A-Z</option>
+                        <option value="sender-desc">Sender Z-A</option>
+                        <option value="subject-asc">Subject A-Z</option>
+                    </select>
+                </div>
+                
+                <div id="search-results-count" class="search-results-count hidden"></div>
+            </div>
+            
+            <div class="category-section" id="needs-reply-section">
+                <div class="category-header" data-category="needs-reply">
+                    <h3>🔴 Needs Reply</h3>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="badge" id="needs-reply-count">0</span>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                </div>
+                <div class="message-list" id="needs-reply-list"></div>
+            </div>
+            
+            <div class="category-section" id="important-section">
+                <div class="category-header" data-category="important">
+                    <h3>🟡 Important</h3>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="badge" id="important-count">0</span>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                </div>
+                <div class="message-list" id="important-list"></div>
+            </div>
+            
+            <div class="category-section" id="ignore-section">
+                <div class="category-header" data-category="ignore">
+                    <h3>⚪ Ignore</h3>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="badge" id="ignore-count">0</span>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                </div>
+                <div class="message-list" id="ignore-list"></div>
+            </div>
+        </div>
+
+        <!-- Error State -->
+        <div id="error-state" class="error-state hidden">
+            <div class="error-icon">⚠️</div>
+            <p id="error-message">An error occurred</p>
+            <button id="retry-button" class="btn btn-secondary">Retry</button>
+        </div>
+    </div>
+
+    <!-- Settings Panel (Phase 7) -->
+    <div id="settings-panel" class="settings-panel hidden">
+        <div class="settings-header">
+            <h2>Settings</h2>
+            <button id="close-settings-button" class="btn-link" style="font-size: 18px;">✕</button>
+        </div>
+        
+        <div class="settings-content">
+            <!-- Permission Section -->
+            <div class="settings-section">
+                <h3>Permissions</h3>
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <p class="settings-item-title">Extension Permission</p>
+                        <p class="settings-item-desc">Control access to your Gmail messages</p>
+                    </div>
+                    <button id="revoke-permission-button" class="btn btn-secondary">Revoke Permission</button>
+                </div>
+            </div>
+            
+            <!-- Data Section -->
+            <div class="settings-section">
+                <h3>Data Management</h3>
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <p class="settings-item-title">Clear Session Data</p>
+                        <p class="settings-item-desc">Remove all stored messages and analysis results</p>
+                    </div>
+                    <button id="clear-data-button" class="btn btn-secondary">Clear Data</button>
+                </div>
+            </div>
+            
+            <!-- Privacy Section -->
+            <div class="settings-section">
+                <h3>Privacy Information</h3>
+                <div class="privacy-info">
+                    <div class="privacy-item">
+                        <span class="privacy-icon">✓</span>
+                        <span>Only processes visible messages on your action</span>
+                    </div>
+                    <div class="privacy-item">
+                        <span class="privacy-icon">✓</span>
+                        <span>No data stored in the cloud</span>
+                    </div>
+                    <div class="privacy-item">
+                        <span class="privacy-icon">✓</span>
+                        <span>No background data collection</span>
+                    </div>
+                    <div class="privacy-item">
+                        <span class="privacy-icon">✓</span>
+                        <span>All processing happens locally or on your backend</span>
+                    </div>
+                    <div class="privacy-item">
+                        <span class="privacy-icon">✓</span>
+                        <span>You can revoke permission at any time</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- About Section -->
+            <div class="settings-section">
+                <h3>About</h3>
+                <div class="about-info">
+                    <p><strong>Smart Message Organizer</strong></p>
+                    <p>Version 1.0.0</p>
+                    <p>Organize your Gmail messages into actionable categories</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Privacy Notice Modal (Phase 7) -->
+    <div id="privacy-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔒 Privacy & Data Protection</h2>
+                <button id="close-privacy-modal" class="btn-link" style="font-size: 18px;">✕</button>
+            </div>
+            <div class="modal-body">
+                <h3>What We Do</h3>
+                <ul class="privacy-list-detailed">
+                    <li>✓ Read only <strong>visible</strong> email subject lines and previews</li>
+                    <li>✓ Process messages only when <strong>you click</strong> "Analyze Messages"</li>
+                    <li>✓ Classify messages using your <strong>local backend</strong> or cloud service</li>
+                    <li>✓ Store results <strong>locally</strong> in your browser</li>
+                </ul>
+                
+                <h3>What We Don't Do</h3>
+                <ul class="privacy-list-detailed">
+                    <li>✗ <strong>No</strong> background data collection</li>
+                    <li>✗ <strong>No</strong> cloud storage of your emails</li>
+                    <li>✗ <strong>No</strong> sending data to third parties</li>
+                    <li>✗ <strong>No</strong> tracking or analytics</li>
+                    <li>✗ <strong>No</strong> access without your explicit permission</li>
+                </ul>
+                
+                <h3>Your Control</h3>
+                <ul class="privacy-list-detailed">
+                    <li>✓ You can <strong>revoke permission</strong> at any time</li>
+                    <li>✓ You can <strong>clear all data</strong> instantly</li>
+                    <li>✓ All processing requires <strong>your action</strong></li>
+                    <li>✓ No data is collected <strong>automatically</strong></li>
+                </ul>
+                
+                <h3>Data Storage</h3>
+                <p class="privacy-note">
+                    All data is stored locally in your browser using Chrome's storage API. 
+                    No data leaves your device unless you configure a remote backend server.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button id="close-privacy-modal-footer" class="btn btn-primary">Got it</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <button id="settings-button" class="btn-link">Settings</button>
+        <span class="separator">•</span>
+        <button id="privacy-button" class="btn-link">Privacy</button>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html>
+

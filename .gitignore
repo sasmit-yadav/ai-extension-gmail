@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+*.egg-info/
+dist/
+build/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Extension build files
+*.crx
+*.pem
+*.zip
+extension.zip
+
+# Logs
+*.log
+logs/
+
+# Node modules (if using any build tools)
+node_modules/
+package-lock.json
+
+# Screenshots (optional - uncomment if you don't want to track them)
+# screenshots/*.png
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# API keys (if stored locally)
+config.json
+secrets.json
+
